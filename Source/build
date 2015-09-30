@@ -1,0 +1,1 @@
+avr-gcc -Wall -Os -DF_CPU=8000000 -mmcu=atmega48 -c main.c -o main.o
