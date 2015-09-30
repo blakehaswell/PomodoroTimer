@@ -1,1 +1,3 @@
-avr-gcc -Wall -Os -DF_CPU=8000000 -mmcu=atmega48 -c main.c -o main.o
+avr-gcc -Wall -Os -DF_CPU=8000000 -mmcu=atmega48 -S main.c -o main.s
+avr-gcc -Wall -Os -DF_CPU=8000000 -mmcu=atmega48 -S platform.c -o platform.s
+avr-gcc -Wall -Os -DF_CPU=8000000 -mmcu=atmega48 -S state.c -o state.s

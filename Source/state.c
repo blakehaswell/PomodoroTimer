@@ -1,17 +1,6 @@
-# define WORK_TIME 1500 // 25 minutes
-# define BREAK_TIME 300 // 5 minutes
-
-enum TaskStatus { READY, WORKING, COMPLETE };
-
-struct State {
-        enum TaskStatus status;
-        uint16_t seconds_remaining;
-};
-
-volatile struct State state = {
-        READY,
-        WORK_TIME
-};
+#include <assert.h>
+#include "state.h"
+#include "platform.h"
 
 void handle_button_down() {
         struct State new_state;
