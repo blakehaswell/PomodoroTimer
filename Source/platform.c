@@ -22,45 +22,54 @@ ISR(PCINT1_vect) {
         }
 }
 
-enum WaveformGenerationMode { NORMAL, CTC };
+volatile uint32_t overflow_count = 0;
+#define MAX_OVERFLOW_COUNT 488
+#define REMAINDER_TICKS 72
 
-void set_waveform_generation_mode(enum WaveformGenerationMode mode) {
-        switch (mode) {
-        case NORMAL:
-                TCCR0A &= ~((1 << WGM01) | (1 << WGM00));
-                TCCR0B &= ~(1 << WGM02);
-                break;
-        case CTC:
-                TCCR0A = (TCCR0A & ~(1 << WGM01)) | (1 << WGM00);
-                TCCR0B &= ~(1 << WGM02);
-                break;
-        }
-}
-
-void configure_clock_tick_interrupt() {
+void configure_clock_interrupts() {
         // Set timer clock to 1/8th system clock speed.
         TCCR0B = (2 << CS00);
-        
-        set_waveform_generation_mode(NORMAL);
+
+        // Set the overflow count for CTC mode.
+        OCR0A = REMAINDER_TICKS;
 }
 
-volatile uint32_t overflow_count = 0;
+void start_clock() {
+        overflow_count = 0;
+        
+        // Set waveform generation mode to "normal".
+        TCCR0A &= ~((1 << WGM01) | (1 << WGM00));
+        TCCR0B &= ~(1 << WGM02);
+        
+        // Set timer counter to 0.
+        TCNT0 = 0;
+
+        // Enable timer interrupts.
+        TIMSK0 |= (1 << OCIE0A) | (1 << TOIE0);
+}
+
 ISR(TIMER0_OVF_vect) {
         ++overflow_count;
-        if (overflow_count == 488) {
-                overflow_count = 0;
-                
-                set_waveform_generation_mode(CTC);
-                
-                // Trigger interrupt in 72 cycles.
-                OCR0A = 72;
+        if (overflow_count == MAX_OVERFLOW_COUNT) {
+                // Set waveform generation mode to "CTC".
+                TCCR0A = (TCCR0A & ~(1 << WGM01)) | (1 << WGM00);
+                TCCR0B &= ~(1 << WGM02);
         }
 }
 
 ISR(TIMER0_COMPA_vect) {
-        set_waveform_generation_mode(NORMAL);
+        overflow_count = 0;
+        
+        // Set waveform generation mode to "normal".
+        TCCR0A &= ~((1 << WGM01) | (1 << WGM00));
+        TCCR0B &= ~(1 << WGM02);
         
         handle_clock_tick();
+}
+
+void stop_clock() {
+        // Disable timer interrupts.
+        TIMSK0 &= ~(1 << OCIE0A) | ~(1 << TOIE0);
 }
 
 /*
@@ -75,7 +84,7 @@ ISR(TIMER0_COMPA_vect) {
 void initialize_platform() {
         configure_io();
         configure_button_interrupt();
-        configure_clock_tick_interrupt();
+        configure_clock_interrupts();
 
         sei();
 }
