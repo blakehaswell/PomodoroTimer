@@ -3,6 +3,8 @@
 #include "platform.h"
 #include "state.h"
 
+// TODO: Split this into config for display output, light output, and sound
+// output.
 void configure_io() {
         DDRB = (1 << DDB2) | (1 << DDB1) | (1 << DDB0);
         DDRC = (1 << DDC5) | (1 << DDC4) | (1 << DDC3) | (1 << DDC2) | (1 << DDC1);
@@ -80,11 +82,32 @@ void stop_clock() {
   4) Play sounds.
 */
 
+void configure_display() {
+        // Setup ISR to occur every x ms
+        // Or if ISR doesn't work just run this on the main thread
+        // (I'm worried about ISR working because we reset TCNT0 in
+        // start_clock())
+}
+
+volatile uint8_t display_index;
+uint8_t display_pins[4] = {
+        PD1,
+        PC4,
+        PC3,
+        PD7
+};
+ISR(TIMER0_COMPB_vect) {
+        uint8_t i = display_index % 4;
+        uint8_t display_pin = display_pins[i];
+        ++display_pin; // TODO: Remove this.
+        ++display_index;
+}
 
 void initialize_platform() {
         configure_io();
         configure_button_interrupt();
         configure_clock_interrupts();
+        configure_display();
 
         sei();
 }
