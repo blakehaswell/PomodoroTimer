@@ -1,5 +1,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <assert.h>
+#include <util/delay.h>
 #include "platform.h"
 #include "state.h"
 
@@ -82,32 +84,50 @@ void stop_clock() {
   4) Play sounds.
 */
 
-void configure_display() {
-    // Setup ISR to occur every x ms
-    // Or if ISR doesn't work just run this on the main thread
-    // (I'm worried about ISR working because we reset TCNT0 in
-    // start_clock())
-}
-
-volatile uint8_t display_index;
-uint8_t display_pins[4] = {
-    PD1,
-    PC4,
-    PC3,
-    PD7
-};
-ISR(TIMER0_COMPB_vect) {
-    uint8_t i = display_index % 4;
-    uint8_t display_pin = display_pins[i];
-    ++display_pin; // TODO: Remove this.
-    ++display_index;
-}
-
 void initialize_platform() {
     configure_io();
     configure_button_interrupt();
     configure_clock_interrupts();
-    configure_display();
 
     sei();
+}
+
+void platform_loop() {
+    static uint8_t digit = 0;
+    uint8_t number = get_number(digit, state.seconds_remaining);
+    render_digit(digit, number);
+    digit = (digit < 3) ? digit : 0;
+    _delay_ms(10);
+}
+
+uint8_t get_number(uint8_t digit, uint16_t seconds_remaining) {
+    uint8_t number;
+    switch (digit) {
+    case (0):
+        number = seconds_remaining / 600;
+        break;
+    case (1):
+        number = (seconds_remaining % 600) / 60;
+        break;
+    case (2):
+        number = seconds_remaining % 60;
+        break;
+    case(3):
+        number = seconds_remaining % 10;
+        break;
+    default:
+        assert(!"Invalid digit.");
+    }
+    return number;
+}
+
+void render_digit(uint8_t digit, uint8_t number) {
+    switch (digit) {
+    case (0):
+        // Make number blank for digit 0 when number is 0
+        break;
+    case(1):
+        // Include decimal point
+        break;
+    }
 }
